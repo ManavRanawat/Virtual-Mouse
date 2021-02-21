@@ -2,7 +2,6 @@
 """
 Created on Mon Feb 15 14:55:43 2021
 
-@author: Manav Ranawat
 """
 
 import cv2
@@ -12,7 +11,7 @@ from collections import deque
 
 
 cap = cv2.VideoCapture(0)
-bgSubtractor = cv2.createBackgroundSubtractorMOG2(history=10, varThreshold=30, detectShadows=False)
+# bgSubtractor = cv2.createBackgroundSubtractorMOG2(history=10, varThreshold=30, detectShadows=False)
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 kernel = np.ones((5,5),np.uint8)
 cnt = 0
@@ -59,9 +58,15 @@ while True:
 
     
     faces = face_cascade.detectMultiScale(frame, 1.1, 4)
-    for (x, y, w, h) in faces:
+    # for (x, y, w, h) in faces:
+    
+    if len(faces)>0:
+        (x, y, w, h) = faces[0]
         cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
-        thresh[y:y+h+20,x:x+w] = np.zeros((h+20, w), np.float64)
+        thresh[y:y+h,x:x+w] = np.zeros((h, w), np.float64)
+    else:
+        continue
+    
 
 
 
