@@ -10,12 +10,12 @@ import numpy as np
 from collections import deque 
 
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 # bgSubtractor = cv2.createBackgroundSubtractorMOG2(history=10, varThreshold=30, detectShadows=False)
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 kernel = np.ones((5,5),np.uint8)
 cnt = 0
-
+flag=True
 while True:
     _,frame = cap.read()
     frame = cv2.flip(frame,1)
@@ -101,24 +101,28 @@ while True:
     hull = cv2.convexHull(c, returnPoints=False)
     defects = cv2.convexityDefects(c, hull)
 
-
-    # if defects is not None:
-    #     cnt = 0
-    #     for i in range(defects.shape[0]):
-    #         s, e, f, d = defects[i][0]
-    #         start = tuple(cnts[s][0])
-    #         end = tuple(cnts[e][0])
-    #         far = tuple(cnts[f][0])
-    #         a1 = np.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
-    #         b1 = np.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
-    #         c1 = np.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
-    #         angle = np.arccos((b1 ** 2 + c1 ** 2 - a1 ** 2) / (2 * b1 * c1))  #      cosine theorem
-    #         if angle <= np.pi / 2:  # angle less than 90 degree, treat as fingers
-    #             cnt += 1
-    #             cv.circle(frame, far, 4, [0, 0, 255], -1)
-    #     if cnt > 0:
-    #         cnt = cnt+1
-    #     cv.putText(frame, str(cnt), (0, 50), cv.FONT_HERSHEY_SIMPLEX,1, (255, 0, 0) , 2, cv.LINE_AA)
+    
+    if defects is not None:
+        cnt = 0
+        for i in range(defects.shape[0]):
+            s, e, f, d = defects[i][0]
+            start = tuple(c[s][0])
+            
+            # if flag==True:
+            #     print(cnts)
+            #     flag=False
+            end = tuple(c[e][0])
+            far = tuple(c[f][0])
+            a1 = np.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
+            b1 = np.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
+            c1 = np.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
+            angle = np.arccos((b1 ** 2 + c1 ** 2 - a1 ** 2) / (2 * b1 * c1))  #      cosine theorem
+            if angle <= np.pi / 2:  # angle less than 90 degree, treat as fingers
+                cnt += 1
+                cv2.circle(frame, far, 4, [0, 0, 255], -1)
+        if cnt > 0:
+            cnt = cnt+1
+        cv2.putText(frame, str(cnt), (0, 50), cv2.FONT_HERSHEY_SIMPLEX,1, (255, 0, 0) , 2, cv2.LINE_AA)
 
     
     # calculate moments of binary image
