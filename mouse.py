@@ -8,6 +8,7 @@ import cv2
 import imutils
 import numpy as np
 from collections import deque 
+from sklearn.metrics import pairwise
 
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -68,7 +69,13 @@ while True:
         continue
     
 
-
+    M = cv2.moments(thresh)
+    # calculate x,y coordinate of center
+    cX = int(M["m10"] / M["m00"])
+    cY = int(M["m01"] / M["m00"])
+    # put text and highlight the center
+    cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
+    # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
     cv2.CHAIN_APPROX_SIMPLE)
@@ -94,45 +101,70 @@ while True:
     cv2.circle(frame, extTop, 8, (255, 0, 0), -1)
     cv2.circle(frame, extBot, 8, (255, 255, 0), -1)
 
+    # cX=(extLeft[0]+extRight[0])//2
+    # cY=(extTop[1]+extBot[1])//2
+
     
     hull = cv2.convexHull(c)
     cv2.drawContours(frame, [hull], -1, (0, 255, 255), 2)
 
     hull = cv2.convexHull(c, returnPoints=False)
     defects = cv2.convexityDefects(c, hull)
-
+    # cv2.drawContours(frame, [hull], -1, (0, 255, 255), 2)
     
-    if defects is not None:
-        cnt = 0
-        for i in range(defects.shape[0]):
-            s, e, f, d = defects[i][0]
-            start = tuple(c[s][0])
+    # if defects is not None:
+    #     cnt = 0
+    #     for i in range(defects.shape[0]):
+    #         s, e, f, d = defects[i][0]
+    #         start = tuple(c[s][0])
             
-            # if flag==True:
-            #     print(cnts)
-            #     flag=False
-            end = tuple(c[e][0])
-            far = tuple(c[f][0])
-            a1 = np.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
-            b1 = np.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
-            c1 = np.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
-            angle = np.arccos((b1 ** 2 + c1 ** 2 - a1 ** 2) / (2 * b1 * c1))  #      cosine theorem
-            if angle <= np.pi / 2:  # angle less than 90 degree, treat as fingers
-                cnt += 1
-                cv2.circle(frame, far, 4, [0, 0, 255], -1)
-        if cnt > 0:
-            cnt = cnt+1
-        cv2.putText(frame, str(cnt), (0, 50), cv2.FONT_HERSHEY_SIMPLEX,1, (255, 0, 0) , 2, cv2.LINE_AA)
+    #         # if flag==True:
+    #         #     print(cnts)
+    #         #     flag=False
+    #         end = tuple(c[e][0])
+    #         far = tuple(c[f][0])
+    #         a1 = np.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
+    #         b1 = np.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
+    #         c1 = np.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
+    #         angle = np.arccos((b1 ** 2 + c1 ** 2 - a1 ** 2) / (2 * b1 * c1))  #      cosine theorem
+    #         if angle <= np.pi / 2:  # angle less than 90 degree, treat as fingers
+    #             cnt += 1
+    #             cv2.circle(frame, far, 4, [0, 0, 255], -1)
+    #     if cnt > 0:
+    #         cnt = cnt+1
+    #     cv2.putText(frame, str(cnt), (0, 50), cv2.FONT_HERSHEY_SIMPLEX,1, (255, 0, 0) , 2, cv2.LINE_AA)
 
+    dist=pairwise.euclidean_distances([extLeft,extRight,extBot,extTop],[[cX,cY]])[0]
+    radi=int(0.80*dist)
+
+    t2 = thresh.copy()
+    
+    circular_roi=np.zeros_like(thresh,dtype='uint8')
+    cv2.circle(circular_roi,(cX,cY),radi,255,8)
+    wighted=cv2.addWeighted(thresh.copy(),0.6,circular_roi,0.4,2)
+
+    mask=cv2.bitwise_and(t2,t2,mask=circular_roi)
+    #mask
+    con,hie=cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+    count=0
+    circumfrence=2*np.pi*radi
+    for cnt in con:
+        (m_x,m_y,m_w,m_h)=cv2.boundingRect(cnt)
+        out_wrist_range=(cY+(cY*0.25))>(m_y+m_h)
+        limit_pts=(circumfrence*0.25)>cnt.shape[0]
+        if limit_pts and out_wrist_range:
+            count+=1
+
+
+
+    cv2.putText(frame,'count: '+str(count),(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
+    cv2.rectangle(frame,(x,y),(x+w,y+h),255,3)
+    cv2.imshow('mask',mask)
+    cv2.imshow('frame',frame)
+    cv2.imshow('weight',wighted)
     
     # calculate moments of binary image
-    M = cv2.moments(thresh)
-    # calculate x,y coordinate of center
-    cX = int(M["m10"] / M["m00"])
-    cY = int(M["m01"] / M["m00"])
-    # put text and highlight the center
-    cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
-    # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    
 
 
 
