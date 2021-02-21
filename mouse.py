@@ -9,6 +9,7 @@ import imutils
 import numpy as np
 from collections import deque 
 from sklearn.metrics import pairwise
+import pyautogui as gui
 
 
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -17,6 +18,9 @@ face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 kernel = np.ones((5,5),np.uint8)
 cnt = 0
 flag=True
+d = deque(maxlen=20)
+
+
 while True:
     _,frame = cap.read()
     frame = cv2.flip(frame,1)
@@ -68,14 +72,20 @@ while True:
     else:
         continue
     
-
+    # calculate moments of binary image
     M = cv2.moments(thresh)
     # calculate x,y coordinate of center
+    if M["m00"]==0:
+        continue
     cX = int(M["m10"] / M["m00"])
     cY = int(M["m01"] / M["m00"])
     # put text and highlight the center
     cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
     # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+    d.appendleft((cX,cY))
+    if len(d)>1:
+        gui.move(5*(d[0][0]-d[1][0]),5*(d[0][1]-d[1][1]))
 
     cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
     cv2.CHAIN_APPROX_SIMPLE)
@@ -156,18 +166,10 @@ while True:
             count+=1
 
 
-
     cv2.putText(frame,'count: '+str(count),(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
-    cv2.rectangle(frame,(x,y),(x+w,y+h),255,3)
-    cv2.imshow('mask',mask)
-    cv2.imshow('frame',frame)
+    # cv2.rectangle(frame,(x,y),(x+w,y+h),255,3)
+
     cv2.imshow('weight',wighted)
-    
-    # calculate moments of binary image
-    
-
-
-
     cv2.imshow('mask',thresh)
     cv2.imshow('frame',frame)
 
