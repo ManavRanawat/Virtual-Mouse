@@ -12,6 +12,45 @@ from sklearn.metrics import pairwise
 import pyautogui as gui
 import sys
 
+
+
+import os
+
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dense, Flatten, Dropout
+from keras.regularizers import l2
+from keras.regularizers import l1
+
+from sklearn.utils import shuffle
+
+from PIL import Image
+from tensorflow.keras import regularizers
+
+def create_model():
+    model = Sequential()
+    model.add(Conv2D(16, kernel_size = 5, activation = 'relu', input_shape = (200,240,1)))
+    model.add(MaxPooling2D(pool_size = 2))
+    model.add(Conv2D(32, kernel_size = 5, activation = 'relu'))
+    model.add(MaxPooling2D(pool_size = 2))
+    model.add(Conv2D(64, kernel_size = 5, activation = 'relu'))
+    model.add(MaxPooling2D(pool_size = 2))
+    model.add(Conv2D(128, kernel_size = 5, activation = 'relu'))
+    model.add(MaxPooling2D(pool_size = 2))
+
+    model.add(Flatten())
+    model.add(Dense(32,activation = 'relu',kernel_regularizer = regularizers.l1_l2(l1 = 0.05,l2 = 0.5), bias_regularizer=l2(0.1)))
+    model.add(Dense(10, activation = 'softmax',kernel_regularizer = regularizers.l1_l2(l1 = 0.05, l2 = 0.5), bias_regularizer=l2(0.1)))
+    
+    return model
+
+# Indices of labels
+    #       0              1              2     3      4       5       6        7         8       9
+labels = ['Undetected','fingers_crossed','up','okay','paper','rock','rock_on','scissor','peace','thumbs']
+
+model = create_model()
+model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+
 gui.FAILSAFE = False
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 # bgSubtractor = cv2.createBackgroundSubtractorMOG2(history=10, varThreshold=30, detectShadows=False)
@@ -22,10 +61,20 @@ flag=True
 d = deque(maxlen=20)
 
 
+def prepocess_img(im):
+    im = im.resize((240,200),Image.ANTIALIAS)
+    im = np.array(im)
+    im = np.expand_dims(im,axis = 2)
+    im = np.expand_dims(im,axis = 0)
+
+    return im
+
+
 while True:
     try: 
         _,frame = cap.read()
         frame = cv2.flip(frame,1)
+        # print(frame)
 
         # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         
@@ -85,6 +134,7 @@ while True:
         cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
         # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
+        #CODE FOR CURSOR MOVEMENT
         d.appendleft((cX,cY))
         if len(d)>1:
             gui.move(3*(d[0][0]-d[1][0]),5*(d[0][1]-d[1][1]))
@@ -104,6 +154,15 @@ while True:
         extTop = tuple(c[c[:, :, 1].argmin()][0])
         extBot = tuple(c[c[:, :, 1].argmax()][0])
 
+        cv2.rectangle(frame, (extLeft[0] - 25, extTop[1] - 25), (extRight[0] + 25, extBot[1] + 25), (255, 0, 0), 2)
+
+        output_gesture = prepocess_img(Image.fromarray(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
+        # cv2.putText(np.argmax(model.predict(im)))
+        cv2.putText(frame, labels[(np.argmax(model.predict(output_gesture)))],(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
+        if np.argmax(model.predict(output_gesture)) == 5:
+            gui.click()  
+        if np.argmax(model.predict(output_gesture)) == 9:
+            gui.click(button='right')
         # draw the outline of the object, then draw each of the
         # extreme points, where the left-most is red, right-most
         # is green, top-most is blue, and bottom-most is teal
@@ -160,22 +219,26 @@ while True:
         con,hie=cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
         count=0
         circumfrence=2*np.pi*radi
-        for cnt in con:
-            (m_x,m_y,m_w,m_h)=cv2.boundingRect(cnt)
-            out_wrist_range=(cY+(cY*0.25))>(m_y+m_h)
-            limit_pts=(circumfrence*0.25)>cnt.shape[0]
-            if limit_pts and out_wrist_range:
-                count+=1
+#        for cnt in con:
+#            (m_x,m_y,m_w,m_h)=cv2.boundingRect(cnt)
+#            out_wrist_range=(cY+(cY*0.25))>(m_y+m_h)
+#            limit_pts=(circumfrence*0.25)>cnt.shape[0]
+#            if limit_pts and out_wrist_range:
+#                count+=1
 
 
-        cv2.putText(frame,'count: '+str(count),(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
+        # cv2.putText(frame,'count: '+str(count),(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
         # cv2.rectangle(frame,(x,y),(x+w,y+h),255,3)
 
-        cv2.imshow('weight',wighted)
+#        cv2.imshow('weight',weighted)
         cv2.imshow('mask',thresh)
         cv2.imshow('frame',frame)
-        if count == 3:
-            gui.click(clicks=1)  
+        
+        # if count == 3:
+        #     gui.click(clicks=1) 
+
+
+
         if cv2.waitKey(1) & 0xFF == ord('q') :
             # print(defects)
             break
