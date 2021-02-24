@@ -17,9 +17,9 @@ import sys
 import os
 
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.models import Sequential
+from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, UpSampling2D, Dense, Flatten, Dropout
-from keras.regularizers import l2
+from tensorflow.keras.regularizers import l2
 from keras.regularizers import l1
 
 from sklearn.utils import shuffle
@@ -27,7 +27,7 @@ from sklearn.utils import shuffle
 from PIL import Image
 from tensorflow.keras import regularizers
 
-from keras.models import model_from_json
+# from tensorflow.keras.models import model_from_json
 
 def create_model():
     model = Sequential()
@@ -50,15 +50,26 @@ def create_model():
     #       0              1              2     3      4       5       6        7         8       9
 labels = ['Undetected','fingers_crossed','up','okay','paper','rock','rock_on','scissor','peace','thumbs']
 
-# model = create_model()
-# model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+labels2 = ['02_l',
+ '04_fist_moved',
+ '09_c',
+ '10_down',
+ '06_index',
+ '08_palm_moved',
+ '07_ok',
+ '05_thumb',
+ '01_palm',
+ '03_fist']
 
-# model = create_model()
-# model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
-with open('D:\\Virtual Mouse\\Virtual-Mouse\\model-mask-detection.json', 'r') as f:
-    loaded_model_json = f.read()
-model = model_from_json(loaded_model_json)
-model.load_weights('D:\\Virtual Mouse\\Virtual-Mouse\\model-mask-detection.h5')
+model = create_model()
+model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+
+model = create_model()
+model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+# with open('D:\\Virtual Mouse\\Virtual-Mouse\\model-mask-detection.json', 'r') as f:
+#     loaded_model_json = f.read()
+# model = model_from_json(loaded_model_json)
+# model.load_weights('D:\\Virtual Mouse\\Virtual-Mouse\\model-mask-detection.h5')
 
 gui.FAILSAFE = False
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -70,16 +81,24 @@ flag=True
 d = deque(maxlen=20)
 
 
-def prepocess_img(img):
-    # im = im.resize((240,200),Image.ANTIALIAS)
-    # im = np.array(im)
-    # im = np.expand_dims(im,axis = 2)
-    # im = np.expand_dims(im,axis = 0)
+def prepocess_img(im):
+    im = im.resize((240,200),Image.ANTIALIAS)
+    im = np.array(im)
+    im = np.expand_dims(im,axis = 2)
+    im = np.expand_dims(im,axis = 0)
     # img = cv2.imread(path,cv2.IMREAD_GRAYSCALE)
-    img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    img = cv2.resize(img, (150,150))
-    arr = np.array(img)
-    return arr
+
+    # img = cv2.flip(img, 1)
+    # img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    # # img = cv2.bitwise_not(img)
+    # img = cv2.applyColorMap(img, cv2.COLORMAP_BONE)
+    # img = cv2.resize(img, (150,150))
+    # cv2.imshow('hand', img)
+    # img = np.array(img)
+    # img = np.expand_dims(img,axis = 2)
+    # img = np.expand_dims(img,axis = 0)
+    
+    return im
 
 
 while True:
@@ -147,9 +166,9 @@ while True:
         # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         #CODE FOR CURSOR MOVEMENT
-        d.appendleft((cX,cY))
-        if len(d)>1:
-            gui.move(3*(d[0][0]-d[1][0]),5*(d[0][1]-d[1][1]))
+        # d.appendleft((cX,cY))
+        # if len(d)>1:
+        #     gui.move(3*(d[0][0]-d[1][0]),5*(d[0][1]-d[1][1]))
 
         cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
         cv2.CHAIN_APPROX_SIMPLE)
@@ -169,14 +188,15 @@ while True:
         cv2.rectangle(frame, (extLeft[0] - 25, extTop[1] - 25), (extRight[0] + 25, extBot[1] + 25), (255, 0, 0), 2)
 
         # output_gesture = prepocess_img(Image.fromarray(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
-        output_gesture = prepocess_img(Image.fromarray(frame[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
+        if extTop[1] - 25 > 0 and extLeft[0] - 25 > 0:
+            output_gesture = prepocess_img(Image.fromarray(cv2.flip(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25], 1)))
 
-        # cv2.putText(np.argmax(model.predict(im)))
-        cv2.putText(frame, np.argmax(model.predict(output_gesture)),(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
-        if np.argmax(model.predict(output_gesture)) == 5:
-            gui.click()  
-        if np.argmax(model.predict(output_gesture)) == 9:
-            gui.click(button='right')
+            # cv2.putText(np.argmax(model.predict(im)))
+            cv2.putText(frame, labels[(np.argmax(model.predict(output_gesture)))],(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
+        # if np.argmax(model.predict(output_gesture)) == 5:
+        #     gui.click()  
+        # if np.argmax(model.predict(output_gesture)) == 9:
+        #     gui.click(button='right')
         # draw the outline of the object, then draw each of the
         # extreme points, where the left-most is red, right-most
         # is green, top-most is blue, and bottom-most is teal
@@ -247,6 +267,7 @@ while True:
 #        cv2.imshow('weight',weighted)
         cv2.imshow('mask',thresh)
         cv2.imshow('frame',frame)
+        
         
         # if count == 3:
         #     gui.click(clicks=1) 
