@@ -27,6 +27,8 @@ from sklearn.utils import shuffle
 from PIL import Image
 from tensorflow.keras import regularizers
 
+from keras.models import model_from_json
+
 def create_model():
     model = Sequential()
     model.add(Conv2D(16, kernel_size = 5, activation = 'relu', input_shape = (200,240,1)))
@@ -48,8 +50,15 @@ def create_model():
     #       0              1              2     3      4       5       6        7         8       9
 labels = ['Undetected','fingers_crossed','up','okay','paper','rock','rock_on','scissor','peace','thumbs']
 
-model = create_model()
-model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+# model = create_model()
+# model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+
+# model = create_model()
+# model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+with open('D:\\Virtual Mouse\\Virtual-Mouse\\model-mask-detection.json', 'r') as f:
+    loaded_model_json = f.read()
+model = model_from_json(loaded_model_json)
+model.load_weights('D:\\Virtual Mouse\\Virtual-Mouse\\model-mask-detection.h5')
 
 gui.FAILSAFE = False
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -61,13 +70,16 @@ flag=True
 d = deque(maxlen=20)
 
 
-def prepocess_img(im):
-    im = im.resize((240,200),Image.ANTIALIAS)
-    im = np.array(im)
-    im = np.expand_dims(im,axis = 2)
-    im = np.expand_dims(im,axis = 0)
-
-    return im
+def prepocess_img(img):
+    # im = im.resize((240,200),Image.ANTIALIAS)
+    # im = np.array(im)
+    # im = np.expand_dims(im,axis = 2)
+    # im = np.expand_dims(im,axis = 0)
+    # img = cv2.imread(path,cv2.IMREAD_GRAYSCALE)
+    img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    img = cv2.resize(img, (150,150))
+    arr = np.array(img)
+    return arr
 
 
 while True:
@@ -156,9 +168,11 @@ while True:
 
         cv2.rectangle(frame, (extLeft[0] - 25, extTop[1] - 25), (extRight[0] + 25, extBot[1] + 25), (255, 0, 0), 2)
 
-        output_gesture = prepocess_img(Image.fromarray(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
+        # output_gesture = prepocess_img(Image.fromarray(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
+        output_gesture = prepocess_img(Image.fromarray(frame[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
+
         # cv2.putText(np.argmax(model.predict(im)))
-        cv2.putText(frame, labels[(np.argmax(model.predict(output_gesture)))],(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
+        cv2.putText(frame, np.argmax(model.predict(output_gesture)),(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
         if np.argmax(model.predict(output_gesture)) == 5:
             gui.click()  
         if np.argmax(model.predict(output_gesture)) == 9:
