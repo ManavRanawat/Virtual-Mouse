@@ -30,20 +30,29 @@ from tensorflow.keras import regularizers
 # from tensorflow.keras.models import model_from_json
 
 def create_model():
-    model = Sequential()
-    model.add(Conv2D(16, kernel_size = 5, activation = 'relu', input_shape = (200,240,1)))
-    model.add(MaxPooling2D(pool_size = 2))
-    model.add(Conv2D(32, kernel_size = 5, activation = 'relu'))
-    model.add(MaxPooling2D(pool_size = 2))
-    model.add(Conv2D(64, kernel_size = 5, activation = 'relu'))
-    model.add(MaxPooling2D(pool_size = 2))
-    model.add(Conv2D(128, kernel_size = 5, activation = 'relu'))
-    model.add(MaxPooling2D(pool_size = 2))
+    # model = Sequential()
+    # model.add(Conv2D(16, kernel_size = 5, activation = 'relu', input_shape = (200,240,1)))
+    # model.add(MaxPooling2D(pool_size = 2))
+    # model.add(Conv2D(32, kernel_size = 5, activation = 'relu'))
+    # model.add(MaxPooling2D(pool_size = 2))
+    # model.add(Conv2D(64, kernel_size = 5, activation = 'relu'))
+    # model.add(MaxPooling2D(pool_size = 2))
+    # model.add(Conv2D(128, kernel_size = 5, activation = 'relu'))
+    # model.add(MaxPooling2D(pool_size = 2))
 
+    # model.add(Flatten())
+    # model.add(Dense(32,activation = 'relu',kernel_regularizer = regularizers.l1_l2(l1 = 0.05,l2 = 0.5), bias_regularizer=l2(0.1)))
+    # model.add(Dense(10, activation = 'softmax',kernel_regularizer = regularizers.l1_l2(l1 = 0.05, l2 = 0.5), bias_regularizer=l2(0.1)))
+    num_of_classes = 7
+    model = Sequential()
+    model.add(Conv2D(32, (5, 5), input_shape=(50,50, 1), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding='same'))
+    model.add(Conv2D(64, (5, 5), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(5, 5), strides=(5, 5), padding='same'))
     model.add(Flatten())
-    model.add(Dense(32,activation = 'relu',kernel_regularizer = regularizers.l1_l2(l1 = 0.05,l2 = 0.5), bias_regularizer=l2(0.1)))
-    model.add(Dense(10, activation = 'softmax',kernel_regularizer = regularizers.l1_l2(l1 = 0.05, l2 = 0.5), bias_regularizer=l2(0.1)))
-    
+    model.add(Dense(1024, activation='relu'))
+    model.add(Dropout(0.6))
+    model.add(Dense(num_of_classes, activation='softmax'))
     return model
 
 # Indices of labels
@@ -60,10 +69,10 @@ def create_model():
 #  '05_thumb',
 #  '01_palm',
 #  '03_fist']
-
-labels = ['Undetected','Undetected','Undetected','okay','paper','rock','Undetected','Undetected','Undetected','Undetected']
+labels = ['Undetected','Rock','Paper','Scissor','L','Three','Rock_on']
+# labels = ['Undetected','Undetected','Undetected','okay','paper','rock','Undetected','Undetected','Undetected','Undetected']
 model = create_model()
-model.load_weights(r'D:\\virtual_mouse\\Virtual-Mouse\\emojirecog.hdf5')
+model.load_weights(r'D:\\virtual_mouse\\Virtual-Mouse\\RPS.h5')
 
 # model = create_model()
 # model.load_weights(r'D:\\virtual_mouse\\Virtual-Mouse\\emojirecog.hdf5')
@@ -82,24 +91,24 @@ flag=True
 d = deque(maxlen=20)
 
 
-def prepocess_img(im):
-    im = im.resize((240,200),Image.ANTIALIAS)
-    im = np.array(im)
-    im = np.expand_dims(im,axis = 2)
-    im = np.expand_dims(im,axis = 0)
+def prepocess_img(img):
+    # im = im.resize((240,200),Image.ANTIALIAS)
+    # im = np.array(im)
+    # im = np.expand_dims(im,axis = 2)
+    # im = np.expand_dims(im,axis = 0)
     # img = cv2.imread(path,cv2.IMREAD_GRAYSCALE)
 
-    # img = cv2.flip(img, 1)
+    img = cv2.flip(img, 1)
     # img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    # # img = cv2.bitwise_not(img)
+    # img = cv2.bitwise_not(img)
     # img = cv2.applyColorMap(img, cv2.COLORMAP_BONE)
-    # img = cv2.resize(img, (150,150))
-    # cv2.imshow('hand', img)
-    # img = np.array(img)
-    # img = np.expand_dims(img,axis = 2)
-    # img = np.expand_dims(img,axis = 0)
+    img = cv2.resize(img, (50,50))
+    cv2.imshow('hand', img)
+    img = np.array(img)
+    img = np.expand_dims(img,axis = 2)
+    img = np.expand_dims(img,axis = 0)
     
-    return im
+    return img
 
 
 while True:
@@ -189,7 +198,7 @@ while True:
         cv2.rectangle(frame, (extLeft[0] - 25, extTop[1] - 25), (extRight[0] + 25, extBot[1] + 25), (255, 0, 0), 2)
         # output_gesture = prepocess_img(Image.fromarray(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
         if extTop[1] - 25 > 0 and extLeft[0] - 25 > 0:
-            output_gesture = prepocess_img(Image.fromarray(cv2.flip(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25], 1)))
+            output_gesture = prepocess_img(cv2.flip(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25], 1))
 
             # cv2.putText(np.argmax(model.predict(im)))
             cv2.putText(frame, labels[(np.argmax(model.predict(output_gesture)))],(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,0,0),thickness=4)
