@@ -48,24 +48,25 @@ def create_model():
 
 # Indices of labels
     #       0              1              2     3      4       5       6        7         8       9
-labels = ['Undetected','fingers_crossed','up','okay','paper','rock','rock_on','scissor','peace','thumbs']
+# labels = ['Undetected','fingers_crossed','up','okay','paper','rock','rock_on','scissor','peace','thumbs']
 
-labels2 = ['02_l',
- '04_fist_moved',
- '09_c',
- '10_down',
- '06_index',
- '08_palm_moved',
- '07_ok',
- '05_thumb',
- '01_palm',
- '03_fist']
+# labels2 = ['02_l',
+#  '04_fist_moved',
+#  '09_c',
+#  '10_down',
+#  '06_index',
+#  '08_palm_moved',
+#  '07_ok',
+#  '05_thumb',
+#  '01_palm',
+#  '03_fist']
 
+labels = ['Undetected','Undetected','Undetected','okay','paper','rock','Undetected','Undetected','Undetected','Undetected']
 model = create_model()
-model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+model.load_weights(r'D:\\virtual_mouse\\Virtual-Mouse\\emojirecog.hdf5')
 
-model = create_model()
-model.load_weights(r'D:\\Virtual Mouse\\Virtual-Mouse\\emojirecog.hdf5')
+# model = create_model()
+# model.load_weights(r'D:\\virtual_mouse\\Virtual-Mouse\\emojirecog.hdf5')
 # with open('D:\\Virtual Mouse\\Virtual-Mouse\\model-mask-detection.json', 'r') as f:
 #     loaded_model_json = f.read()
 # model = model_from_json(loaded_model_json)
@@ -155,20 +156,20 @@ while True:
             continue
         
         # calculate moments of binary image
-        M = cv2.moments(thresh)
-        # calculate x,y coordinate of center
-        if M["m00"]==0:
-            continue
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-        # put text and highlight the center
-        cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
+        # M = cv2.moments(thresh)
+        # # calculate x,y coordinate of center
+        # if M["m00"]==0:
+        #     continue
+        # cX = int(M["m10"] / M["m00"])
+        # cY = int(M["m01"] / M["m00"])
+        # # put text and highlight the center
+        # cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
         # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         #CODE FOR CURSOR MOVEMENT
         # d.appendleft((cX,cY))
         # if len(d)>1:
-        #     gui.move(3*(d[0][0]-d[1][0]),5*(d[0][1]-d[1][1]))
+        #     gui.move(2*(d[0][0]-d[1][0]),2*(d[0][1]-d[1][1]))
 
         cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
         cv2.CHAIN_APPROX_SIMPLE)
@@ -186,17 +187,32 @@ while True:
         extBot = tuple(c[c[:, :, 1].argmax()][0])
 
         cv2.rectangle(frame, (extLeft[0] - 25, extTop[1] - 25), (extRight[0] + 25, extBot[1] + 25), (255, 0, 0), 2)
-
         # output_gesture = prepocess_img(Image.fromarray(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25]))
         if extTop[1] - 25 > 0 and extLeft[0] - 25 > 0:
             output_gesture = prepocess_img(Image.fromarray(cv2.flip(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25], 1)))
 
             # cv2.putText(np.argmax(model.predict(im)))
-            cv2.putText(frame, labels[(np.argmax(model.predict(output_gesture)))],(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,250,0),thickness=4)
+            cv2.putText(frame, labels[(np.argmax(model.predict(output_gesture)))],(460,70),cv2.FONT_HERSHEY_SIMPLEX ,1,(0,0,0),thickness=4)
+        # M = cv2.moments(thresh[extTop[1] - 25:extBot[1] + 25, extLeft[0] - 25:extRight[0] + 25])
+        # calculate x,y coordinate of center
+        M = cv2.moments(thresh)
+        if M["m00"]==0:
+            continue
+        cX = int(M["m10"] / M["m00"])
+        cY = int(M["m01"] / M["m00"])
+        # put text and highlight the center
+        cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
+        # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+        #CODE FOR CURSOR MOVEMENT
+        d.appendleft((cX,cY))
+        # if len(d)>1:
+        #     gui.move(3*(d[0][0]-d[1][0]),3*(d[0][1]-d[1][1]))
         # if np.argmax(model.predict(output_gesture)) == 5:
         #     gui.click()  
-        # if np.argmax(model.predict(output_gesture)) == 9:
+        # if np.argmax(model.predict(output_gesture)) == 3:
         #     gui.click(button='right')
+        
         # draw the outline of the object, then draw each of the
         # extreme points, where the left-most is red, right-most
         # is green, top-most is blue, and bottom-most is teal
@@ -214,7 +230,7 @@ while True:
         cv2.drawContours(frame, [hull], -1, (0, 255, 255), 2)
 
         hull = cv2.convexHull(c, returnPoints=False)
-        defects = cv2.convexityDefects(c, hull)
+        # defects = cv2.convexityDefects(c, hull)
         # cv2.drawContours(frame, [hull], -1, (0, 255, 255), 2)
         
         # if defects is not None:
@@ -239,20 +255,20 @@ while True:
         #         cnt = cnt+1
         #     cv2.putText(frame, str(cnt), (0, 50), cv2.FONT_HERSHEY_SIMPLEX,1, (255, 0, 0) , 2, cv2.LINE_AA)
 
-        dist=pairwise.euclidean_distances([extLeft,extRight,extBot,extTop],[[cX,cY]])[0]
-        radi=int(0.80*dist)
+        # dist=pairwise.euclidean_distances([extLeft,extRight,extBot,extTop],[[cX,cY]])[0]
+        # radi=int(0.80*dist)
 
-        t2 = thresh.copy()
+        # t2 = thresh.copy()
         
-        circular_roi=np.zeros_like(thresh,dtype='uint8')
-        cv2.circle(circular_roi,(cX,cY),radi,255,8)
-        wighted=cv2.addWeighted(thresh.copy(),0.6,circular_roi,0.4,2)
+        # circular_roi=np.zeros_like(thresh,dtype='uint8')
+        # cv2.circle(circular_roi,(cX,cY),radi,255,8)
+        # wighted=cv2.addWeighted(thresh.copy(),0.6,circular_roi,0.4,2)
 
-        mask=cv2.bitwise_and(t2,t2,mask=circular_roi)
-        #mask
-        con,hie=cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
-        count=0
-        circumfrence=2*np.pi*radi
+        # mask=cv2.bitwise_and(t2,t2,mask=circular_roi)
+        # #mask
+        # con,hie=cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+        # count=0
+        # circumfrence=2*np.pi*radi
 #        for cnt in con:
 #            (m_x,m_y,m_w,m_h)=cv2.boundingRect(cnt)
 #            out_wrist_range=(cY+(cY*0.25))>(m_y+m_h)
