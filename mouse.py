@@ -215,7 +215,7 @@ while True:
         cv2.circle(frame, (cX+extLeft[0]-25, cY+extTop[1]-25), 5, (255, 255, 255), -1)
         # cv2.putText(frame, "centroid", (cX - 25, cY - 25),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-        #CODE FOR CURSOR MOVEMENT
+        # CODE FOR CURSOR MOVEMENT
         d.appendleft((cX+extLeft[0]-25, cY+extTop[1]-25))
         if len(d) > 1 and np.argmax(model.predict(output_gesture)) == 4:
             gui.move(5 * (d[0][0] - d[1][0]), 5 * (d[0][1] - d[1][1]))
@@ -223,6 +223,17 @@ while True:
             gui.click()
         if np.argmax(model.predict(output_gesture)) == 5:
             gui.click(button='right')
+        if np.argmax(model.predict(output_gesture)) == 1:#rock
+            os.system("Notepad")
+            
+        if np.argmax(model.predict(output_gesture)) == 3:
+            #scissor
+            print(1*(d[0][1] - d[1][1]))
+            gui.scroll(-10)
+
+        if np.argmax(model.predict(output_gesture)) == 6:
+        #     #rock_on
+            gui.scroll(10) 
 
 
 
