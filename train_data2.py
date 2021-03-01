@@ -7,6 +7,8 @@ from keras.callbacks import ModelCheckpoint
 from sklearn.model_selection import train_test_split
 from keras.callbacks import TensorBoard
 import pandas as pd
+import io
+import matplotlib.pyplot as plt
 
 
 def keras_model(image_x, image_y):
@@ -22,16 +24,26 @@ def keras_model(image_x, image_y):
     model.add(Dense(num_of_classes, activation='softmax'))
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    filepath = "D:/virtual_mouse/Virtual-Mouse/RPS.h5"
+    filepath = "RPS_temp.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     callbacks_list = [checkpoint]
     callbacks_list.append(TensorBoard(log_dir='RPS_logs'))
+    # model.summary()
+    def get_model_summary(model):
+        stream = io.StringIO()
+        model.summary(print_fn=lambda x: stream.write(x + '\n'))
+        summary_string = stream.getvalue()
+        stream.close()
+        return summary_string
 
+    model_summary_string = get_model_summary(model)
+
+    print(model_summary_string)
     return model, callbacks_list
 
 
 def loadData():
-    data = pd.read_csv("D:/virtual_mouse/Virtual-Mouse/train_foo2.csv")
+    data = pd.read_csv("train_foo2.csv")
     dataset = np.array(data)
     np.random.shuffle(dataset)
     features = dataset[:, 1:2501]
@@ -67,13 +79,28 @@ def main():
     train_x, test_x, train_y, test_y = reshapeData(train_x, test_x, train_y, test_y)
     printInfo(train_x, test_x, train_y, test_y)
     model, callbacks_list = keras_model(train_x.shape[1], train_x.shape[2])
-    model.fit(train_x, train_y, validation_data=(test_x, test_y), epochs=2, batch_size=64,
+    History = model.fit(train_x, train_y, validation_data=(test_x, test_y), epochs=10, batch_size=128,
               callbacks=callbacks_list)
     scores = model.evaluate(test_x, test_y, verbose=1)
     print("CNN Error: %.2f%%" % (100 - scores[1] * 100))
     # print_summary(model)
+    plt.plot(History.history['accuracy'])
+    plt.plot(History.history['val_accuracy'])
+    plt.title('Model Accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epochs')
+    plt.legend(['train', 'test'])
+    plt.show()
 
-    model.save('D:/virtual_mouse/Virtual-Mouse/RPS.h5')
+    plt.plot(History.history['loss'])
+    plt.plot(History.history['val_loss'])
+    plt.title('Model Loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epochs')
+    plt.legend(['train', 'test'])
+    plt.show()
+
+    model.save('RPS_temp.h5')
 
 
 if __name__ == '__main__':
